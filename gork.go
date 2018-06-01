@@ -20,7 +20,7 @@ type Blog struct {
 	Z_PK           int
 	Z_8FEEDS       int
 	Z_7FEEDFOLDERS int
-	folder         string
+	Folder         string
 }
 
 func main() {
@@ -61,7 +61,7 @@ func main() {
 		rows, err := stmt.Query(Z_PK)
 		for rows.Next() {
 			err = rows.Scan(&blog.Z_8FEEDS, &blog.Z_7FEEDFOLDERS)
-			blog.folder = blogs[blog.Z_7FEEDFOLDERS].ZTITLE
+			blog.Folder = blogs[blog.Z_7FEEDFOLDERS].ZTITLE
 			blogs[blog.Z_PK] = blog
 		}
 	}
