@@ -8,19 +8,23 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
+	"strings"
 )
 
+// Only fields beginning with uppercase are exported for JSON
 type Blog struct {
-	ZEXT_ID        string
-	ZFEED_LINK     sql.NullString
-	ZFOLDER_ID     string
-	ZTITLE         string
-	Z_ENT          int
-	Z_OPT          int
-	Z_PK           int
-	Z_8FEEDS       int
-	Z_7FEEDFOLDERS int
+	zEXT_ID        string
+	zFEED_LINK     sql.NullString
+	zFOLDER_ID     string
+	ZTITLE         string `json:"Title"`
+	z_ENT          int
+	z_OPT          int
+	z_PK           int
+	z_8FEEDS       int
+	z_7FEEDFOLDERS int
 	Folder         string
+	Feed           string
+	Url            string
 }
 
 func main() {
@@ -48,21 +52,23 @@ func main() {
 	checkErr(err)
 	for rows.Next() {
 		blog := new(Blog)
-		err = rows.Scan(&blog.ZEXT_ID, &blog.ZFEED_LINK, &blog.ZFOLDER_ID, &blog.ZTITLE, &blog.Z_ENT, &blog.Z_OPT, &blog.Z_PK)
+		err = rows.Scan(&blog.zEXT_ID, &blog.zFEED_LINK, &blog.zFOLDER_ID, &blog.ZTITLE, &blog.z_ENT, &blog.z_OPT, &blog.z_PK)
+		blog.Url = blog.zFEED_LINK.String
+		blog.Feed = strings.Replace(blog.zEXT_ID, "feed/", "", 1)
 		checkErr(err)
-		blogs[blog.Z_PK] = *blog
+		blogs[blog.z_PK] = *blog
 	}
 	rows.Close()
 
 	// Hook up each blog with its folder
-	for Z_PK, blog := range blogs {
+	for z_PK, blog := range blogs {
 		stmt, err := db.Prepare("SELECT Z_8FEEDS,Z_7FEEDFOLDERS from Z_8FEEDFOLDERS WHERE Z_8FEEDS = ?")
 		checkErr(err)
-		rows, err := stmt.Query(Z_PK)
+		rows, err := stmt.Query(z_PK)
 		for rows.Next() {
-			err = rows.Scan(&blog.Z_8FEEDS, &blog.Z_7FEEDFOLDERS)
-			blog.Folder = blogs[blog.Z_7FEEDFOLDERS].ZTITLE
-			blogs[blog.Z_PK] = blog
+			err = rows.Scan(&blog.z_8FEEDS, &blog.z_7FEEDFOLDERS)
+			blog.Folder = blogs[blog.z_7FEEDFOLDERS].ZTITLE
+			blogs[blog.z_PK] = blog
 		}
 	}
 	rows.Close()
@@ -85,7 +91,7 @@ func main() {
 	checkErr(err)
 	for _, blog := range blogs {
 		currentBlog++
-		if blog.Z_ENT == 8 {
+		if blog.z_ENT == 8 {
 			t, err := json.MarshalIndent(blog, "", "  ")
 			_, err = f.WriteString(string(t))
 			checkErr(err)
