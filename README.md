@@ -1,7 +1,7 @@
 # gork
 Go ReadKit.
 
-Export blogs and folders from ReadKit.
+Export blogs and folders from ReadKit in JSON and OPML.
 
 ## Why?
 After putting a new hard disk in my ageing MacBook Pro and reinstalling [ReadKit](https://readkitapp.com/) I remembered I'd deleted the Google account it was using to sync feeds. Strangely enough, it was still running fine on the even older Mac and that's when I realised there was no way to export my list of blogs and their folders from ReadKit. Having deleted my Google account there was also no way to login to "do something".
@@ -74,8 +74,8 @@ I don't recommend running gork on a live ReadKit database file. Copy it somewher
 	~/Library/Containers/com.webinhq.ReadKit/Data/Library/Application Support/ReadKit/ReadKit.storedata
 </pre>
 
-so copy it, for example to /tmp/ReadKit.storedata and run the following command. blogs.json will be created in the current working directory:
+so copy it, for example to /tmp/ReadKit.storedata and run the following command. blogs.json and blogs.opml will be created in the current working directory:
 
 <pre>
-	gork /tmp/ReadKit.storedata blogs.json
+	gork /tmp/ReadKit.storedata blogs
 </pre>
