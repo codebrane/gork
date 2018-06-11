@@ -27,21 +27,27 @@ type Blog struct {
 	Url            string
 }
 
+const FOLDER = 7
+const FEED = 8
+
 func main() {
 
 	// Sort out the program input
 	if (len(os.Args)) < 3 {
 		fmt.Println("Usage:")
-		fmt.Println("gork PATH_TO_READKIT_DATABASE PATH_TO_OUTPUT_FILE")
+		fmt.Println("gork PATH_TO_READKIT_DATABASE PATH_TO_OUTPUT_FILE_WITHOUT_EXTENSION")
 		fmt.Println("e.g.")
-		fmt.Println("gork ReadKit.storedata blogs.json")
+		fmt.Println("gork ReadKit.storedata blogs")
+		fmt.Println("will create blogs.json and blogs.opml")
 		os.Exit(1)
 	}
 	readkitDatabase := os.Args[1]
 	blogsFile := os.Args[2]
 
-	// Keep a running list of all blogs
+	// Keep a running list of all blogs...
 	blogs := make(map[int]Blog)
+	// ...and folders
+	folders := make(map[string][]Blog)
 
 	// Open the ReadKit database
 	db, err := sql.Open("sqlite3", readkitDatabase)
@@ -69,41 +75,67 @@ func main() {
 			err = rows.Scan(&blog.z_8FEEDS, &blog.z_7FEEDFOLDERS)
 			blog.Folder = blogs[blog.z_7FEEDFOLDERS].ZTITLE
 			blogs[blog.z_PK] = blog
+			folders[blog.Folder] = append(folders[blog.Folder], blog)
 		}
 	}
 	rows.Close()
 
 	db.Close()
 
-	// Delete any existing blogs output file
-	if _, err := os.Stat(blogsFile); err == nil {
-		err = os.Remove(blogsFile)
+	// Delete any existing blogs output files
+	if _, err := os.Stat(blogsFile + ".json"); err == nil {
+		err = os.Remove(blogsFile + ".json")
 	}
-	f, err := os.OpenFile(blogsFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	jsonFile, err := os.OpenFile(blogsFile+".json", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	checkErr(err)
-	defer f.Close()
+	defer jsonFile.Close()
+
+	if _, err := os.Stat(blogsFile + ".opml"); err == nil {
+		err = os.Remove(blogsFile + ".opml")
+	}
+	opmlFile, err := os.OpenFile(blogsFile+".opml", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	checkErr(err)
+	defer opmlFile.Close()
 
 	totalBlogs := len(blogs)
 	currentBlog := 0
 
-	// Create the blogs output file
-	_, err = f.WriteString("[\n")
+	// Create the blogs OPML file
+	_, err = opmlFile.WriteString("<opml version=\"1.0\">\n")
+	_, err = opmlFile.WriteString("  <head>\n")
+	_, err = opmlFile.WriteString("    <title>OPML</title>\n")
+	_, err = opmlFile.WriteString("  </head>\n")
+	_, err = opmlFile.WriteString("  <body>\n")
+
+	for folder, blogs := range folders {
+		_, err = opmlFile.WriteString("    <outline title=\"" + folder + "\" text=\"" + folder + "\">\n")
+		for _, blog := range blogs {
+			_, err = opmlFile.WriteString("      <outline text=\"" + blog.ZTITLE + "\" title=\"" + blog.ZTITLE + "\" type=\"rss\" xmlUrl=\"" + blog.Feed + "\"/>\n")
+		}
+		_, err = opmlFile.WriteString("    </outline>\n")
+	}
+
+	_, err = opmlFile.WriteString("  </body>\n")
+	_, err = opmlFile.WriteString("</opml>")
+
+	// Create the blogs JSON file
+	_, err = jsonFile.WriteString("[\n")
 	checkErr(err)
 	for _, blog := range blogs {
 		currentBlog++
-		if blog.z_ENT == 8 {
+		if blog.z_ENT == FEED {
 			t, err := json.MarshalIndent(blog, "", "  ")
-			_, err = f.WriteString(string(t))
+			_, err = jsonFile.WriteString(string(t))
 			checkErr(err)
 			if currentBlog < totalBlogs {
-				_, err = f.WriteString(",")
+				_, err = jsonFile.WriteString(",")
 				checkErr(err)
 			}
-			_, err = f.WriteString("\n")
+			_, err = jsonFile.WriteString("\n")
 			checkErr(err)
 		}
 	}
-	_, err = f.WriteString("]\n")
+	_, err = jsonFile.WriteString("]\n")
 	checkErr(err)
 }
 
