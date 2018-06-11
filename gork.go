@@ -116,7 +116,11 @@ func main() {
 	for folder, blogs := range folders {
 		opmlFile.WriteString("    <outline title=\"" + folder + "\" text=\"" + folder + "\">\n")
 		for _, blog := range blogs {
-			opmlFile.WriteString("      <outline text=\"" + blog.ZTITLE + "\" title=\"" + blog.ZTITLE + "\" type=\"rss\" xmlUrl=\"" + blog.Feed + "\"/>\n")
+			opmlFile.WriteString("      <outline text=\"" + blog.ZTITLE +
+				"\" title=\"" + blog.ZTITLE +
+				"\" htmlUrl=\"" + blog.Url +
+				"\" type=\"rss\" xmlUrl=\"" +
+				blog.Feed + "\"/>\n")
 
 			if blog.z_ENT == FEED {
 				buffer, _ := json.MarshalIndent(blog, "", "  ")
