@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strings"
+	"time"
 )
 
 // Only fields beginning with uppercase are exported for JSON
@@ -99,12 +100,15 @@ func main() {
 	checkErr(err)
 	defer opmlFile.Close()
 
+	now := time.Now()
+
 	// Create the blogs output files
 	jsonFile.WriteString("[\n")
 
 	opmlFile.WriteString("<opml version=\"1.0\">\n")
 	opmlFile.WriteString("  <head>\n")
 	opmlFile.WriteString("    <title>OPML</title>\n")
+	opmlFile.WriteString("    <dateCreated>" + now.Format("Mon Jan _2 15:04:05 2006") + "</dateCreated>\n")
 	opmlFile.WriteString("  </head>\n")
 	opmlFile.WriteString("  <body>\n")
 
