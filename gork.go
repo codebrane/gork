@@ -67,6 +67,7 @@ func main() {
 	rows.Close()
 
 	// Hook up each blog with its folder
+	totalBlogs := 0
 	for z_PK, blog := range blogs {
 		stmt, err := db.Prepare("SELECT Z_8FEEDS,Z_7FEEDFOLDERS from Z_8FEEDFOLDERS WHERE Z_8FEEDS = ?")
 		checkErr(err)
@@ -76,6 +77,7 @@ func main() {
 			blog.Folder = blogs[blog.z_7FEEDFOLDERS].ZTITLE
 			blogs[blog.z_PK] = blog
 			folders[blog.Folder] = append(folders[blog.Folder], blog)
+			totalBlogs++
 		}
 	}
 	rows.Close()
@@ -97,46 +99,39 @@ func main() {
 	checkErr(err)
 	defer opmlFile.Close()
 
-	totalBlogs := len(blogs)
-	currentBlog := 0
+	// Create the blogs output files
+	jsonFile.WriteString("[\n")
 
-	// Create the blogs OPML file
-	_, err = opmlFile.WriteString("<opml version=\"1.0\">\n")
-	_, err = opmlFile.WriteString("  <head>\n")
-	_, err = opmlFile.WriteString("    <title>OPML</title>\n")
-	_, err = opmlFile.WriteString("  </head>\n")
-	_, err = opmlFile.WriteString("  <body>\n")
+	opmlFile.WriteString("<opml version=\"1.0\">\n")
+	opmlFile.WriteString("  <head>\n")
+	opmlFile.WriteString("    <title>OPML</title>\n")
+	opmlFile.WriteString("  </head>\n")
+	opmlFile.WriteString("  <body>\n")
 
+	currentBlog := 1
 	for folder, blogs := range folders {
-		_, err = opmlFile.WriteString("    <outline title=\"" + folder + "\" text=\"" + folder + "\">\n")
+		opmlFile.WriteString("    <outline title=\"" + folder + "\" text=\"" + folder + "\">\n")
 		for _, blog := range blogs {
-			_, err = opmlFile.WriteString("      <outline text=\"" + blog.ZTITLE + "\" title=\"" + blog.ZTITLE + "\" type=\"rss\" xmlUrl=\"" + blog.Feed + "\"/>\n")
-		}
-		_, err = opmlFile.WriteString("    </outline>\n")
-	}
+			opmlFile.WriteString("      <outline text=\"" + blog.ZTITLE + "\" title=\"" + blog.ZTITLE + "\" type=\"rss\" xmlUrl=\"" + blog.Feed + "\"/>\n")
 
-	_, err = opmlFile.WriteString("  </body>\n")
-	_, err = opmlFile.WriteString("</opml>")
-
-	// Create the blogs JSON file
-	_, err = jsonFile.WriteString("[\n")
-	checkErr(err)
-	for _, blog := range blogs {
-		currentBlog++
-		if blog.z_ENT == FEED {
-			t, err := json.MarshalIndent(blog, "", "  ")
-			_, err = jsonFile.WriteString(string(t))
-			checkErr(err)
-			if currentBlog < totalBlogs {
-				_, err = jsonFile.WriteString(",")
-				checkErr(err)
+			if blog.z_ENT == FEED {
+				buffer, _ := json.MarshalIndent(blog, "", "  ")
+				jsonFile.WriteString(string(buffer))
+				if currentBlog < totalBlogs {
+					jsonFile.WriteString(",")
+				}
+				jsonFile.WriteString("\n")
+				currentBlog++
 			}
-			_, err = jsonFile.WriteString("\n")
-			checkErr(err)
+
 		}
+		opmlFile.WriteString("    </outline>\n")
 	}
-	_, err = jsonFile.WriteString("]\n")
-	checkErr(err)
+
+	opmlFile.WriteString("  </body>\n")
+	opmlFile.WriteString("</opml>")
+
+	jsonFile.WriteString("]\n")
 }
 
 func checkErr(err error) {
